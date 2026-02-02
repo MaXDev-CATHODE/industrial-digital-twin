@@ -485,24 +485,27 @@ function updateMixerVisuals() {
     // Dynamic Gradient Colors:
     // If a component is missing, its "slot" in the gradient should look like the other component
     // to avoid showing a color that isn't there.
-    const startColorObj = (state.tanks.C.pigmentVol > 0.1) ? state.tanks.A.color : state.tanks.B.color;
-    const midColorObj = (state.tanks.C.baseVol > 0.1) ? state.tanks.B.color : state.tanks.A.color;
+    // FIX: Reverting "smart" logic that caused chaos. 
+    // We strictly rely on pure substance check for edge cases.
+    // If we are here (else), it means we have a MIX (>1% of both).
+    // So distinct Red and White streaks are physically correct.
 
     if (homogeneity >= 0.95 || pigmentRatio <= 0.01 || pigmentRatio >= 0.99) {
         // Fully mixed OR Pure substance
         elements.liquidC.style.background = targetColor;
         elements.liquidC.style.boxShadow = `0 0 20px rgba(${r},${g},${b}, 0.5)`;
         elements.liquidC.style.animation = 'none';
+        elements.liquidC.style.backgroundSize = '100% 100%'; // Reset size
     } else {
         // Heterogeneous (Diffusion pattern)
         const streakIntensity = Math.floor((1 - homogeneity) * 100);
 
-        // Use dynamic colors for the unmixed parts
+        // Use fixed source colors for stability
         elements.liquidC.style.background = `
             linear-gradient(
                 135deg, 
-                rgb(${startColorObj.r},${startColorObj.g},${startColorObj.b}) 0%, 
-                rgb(${midColorObj.r},${midColorObj.g},${midColorObj.b}) ${50 - streakIntensity / 3}%,
+                rgb(${state.tanks.A.color.r},${state.tanks.A.color.g},${state.tanks.A.color.b}) 0%, 
+                rgb(${state.tanks.B.color.r},${state.tanks.B.color.g},${state.tanks.B.color.b}) ${50 - streakIntensity / 3}%,
                 ${targetColor} ${50 + streakIntensity / 3}%, 
                 ${targetColor} 100%
             )
