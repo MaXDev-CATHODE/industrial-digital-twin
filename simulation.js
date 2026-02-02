@@ -482,34 +482,42 @@ function updateMixerVisuals() {
     // it shouldn't show gradient streaks of the other component.
     // Also, if homogeneity is high, show solid.
 
+    // Dynamic Gradient Colors:
+    // If a component is missing, its "slot" in the gradient should look like the other component
+    // to avoid showing a color that isn't there.
+    const startColorObj = (state.tanks.C.pigmentVol > 0.1) ? state.tanks.A.color : state.tanks.B.color;
+    const midColorObj = (state.tanks.C.baseVol > 0.1) ? state.tanks.B.color : state.tanks.A.color;
+
     if (homogeneity >= 0.95 || pigmentRatio <= 0.01 || pigmentRatio >= 0.99) {
         // Fully mixed OR Pure substance
         elements.liquidC.style.background = targetColor;
         elements.liquidC.style.boxShadow = `0 0 20px rgba(${r},${g},${b}, 0.5)`;
         elements.liquidC.style.animation = 'none';
     } else {
-        // Heterogeneous (Diffusion pattern) - Only when we have a MIX of components
+        // Heterogeneous (Diffusion pattern)
         const streakIntensity = Math.floor((1 - homogeneity) * 100);
 
-        // Use consistent angle to avoid "jumping" when agitator stops
+        // Use dynamic colors for the unmixed parts
         elements.liquidC.style.background = `
             linear-gradient(
                 135deg, 
-                rgb(${state.tanks.A.color.r},${state.tanks.A.color.g},${state.tanks.A.color.b}) 0%, 
-                rgb(${state.tanks.B.color.r},${state.tanks.B.color.g},${state.tanks.B.color.b}) ${50 - streakIntensity / 3}%,
+                rgb(${startColorObj.r},${startColorObj.g},${startColorObj.b}) 0%, 
+                rgb(${midColorObj.r},${midColorObj.g},${midColorObj.b}) ${50 - streakIntensity / 3}%,
                 ${targetColor} ${50 + streakIntensity / 3}%, 
                 ${targetColor} 100%
             )
         `;
         elements.liquidC.style.backgroundSize = '400% 400%';
 
-        // Only verify animation property if state changed
+        // Use playback control to prevent jumping on stop
+        if (elements.liquidC.style.animationName !== 'diffusion') {
+            elements.liquidC.style.animation = 'diffusion 3s ease infinite';
+        }
+
         if (isRunning) {
-            if (elements.liquidC.style.animationName !== 'diffusion') {
-                elements.liquidC.style.animation = 'diffusion 3s ease infinite';
-            }
+            elements.liquidC.style.animationPlayState = 'running';
         } else {
-            elements.liquidC.style.animation = 'none';
+            elements.liquidC.style.animationPlayState = 'paused';
         }
     }
 }
