@@ -478,25 +478,30 @@ function updateMixerVisuals() {
 
     const targetColor = `rgb(${r},${g},${b})`;
 
-    if (homogeneity >= 0.95) {
-        // Fully mixed
+    // Bug Fix: If we have pure substance (only pigment OR only base), 
+    // it shouldn't show gradient streaks of the other component.
+    // Also, if homogeneity is high, show solid.
+
+    if (homogeneity >= 0.95 || pigmentRatio <= 0.01 || pigmentRatio >= 0.99) {
+        // Fully mixed OR Pure substance
         elements.liquidC.style.background = targetColor;
         elements.liquidC.style.boxShadow = `0 0 20px rgba(${r},${g},${b}, 0.5)`;
         elements.liquidC.style.animation = 'none';
     } else {
-        // Heterogeneous (Diffusion pattern)
+        // Heterogeneous (Diffusion pattern) - Only when we have a MIX of components
         const streakIntensity = Math.floor((1 - homogeneity) * 100);
 
+        // Use consistent angle to avoid "jumping" when agitator stops
         elements.liquidC.style.background = `
             linear-gradient(
-                ${isRunning ? '45deg' : '180deg'}, 
+                135deg, 
                 rgb(${state.tanks.A.color.r},${state.tanks.A.color.g},${state.tanks.A.color.b}) 0%, 
                 rgb(${state.tanks.B.color.r},${state.tanks.B.color.g},${state.tanks.B.color.b}) ${50 - streakIntensity / 3}%,
                 ${targetColor} ${50 + streakIntensity / 3}%, 
                 ${targetColor} 100%
             )
         `;
-        elements.liquidC.style.backgroundSize = isRunning ? '400% 400%' : '100% 100%';
+        elements.liquidC.style.backgroundSize = '400% 400%';
 
         // Only verify animation property if state changed
         if (isRunning) {
