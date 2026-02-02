@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Industrial Digital Twin - Paint Mixing Station</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <span class="logo">🏭</span>
+                <h1>INDUSTRIAL DIGITAL TWIN</h1>
+                <span class="subtitle">Paint Mixing Station v1.0</span>
+            </div>
+            <div class="header-right">
+                <div class="status-indicator online">
+                    <span class="dot"></span>
+                    <span>SYSTEM ONLINE</span>
+                </div>
+                <div class="runtime">
+                    <span>Runtime:</span>
+                    <span id="runtime">00:00:00</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- SCADA Visualization -->
+            <section class="scada-panel">
+                <h2>Process Visualization</h2>
+                <div class="process-area">
+                    <!-- Tank A - Pigment -->
+                    <div class="tank-group">
+                        <div class="tank" id="tankA">
+                            <div class="tank-label">TANK A</div>
+                            <div class="tank-body">
+                                <div class="liquid pigment" id="liquidA"></div>
+                                <div class="level-text" id="levelA">100%</div>
+                            </div>
+                            <div class="tank-info">PIGMENT (Red)</div>
+                        </div>
+                        <div class="valve-container">
+                            <div class="pipe vertical"></div>
+                            <button class="valve" id="valveA" onclick="toggleValve('A')">
+                                <span class="valve-icon">⬤</span>
+                                <span class="valve-label">V1</span>
+                            </button>
+                            <div class="pipe vertical short"></div>
+                        </div>
+                    </div>
+
+                    <!-- Tank B - Base -->
+                    <div class="tank-group">
+                        <div class="tank" id="tankB">
+                            <div class="tank-label">TANK B</div>
+                            <div class="tank-body">
+                                <div class="liquid base" id="liquidB"></div>
+                                <div class="level-text" id="levelB">100%</div>
+                            </div>
+                            <div class="tank-info">BASE (White)</div>
+                        </div>
+                        <div class="valve-container">
+                            <div class="pipe vertical"></div>
+                            <button class="valve" id="valveB" onclick="toggleValve('B')">
+                                <span class="valve-icon">⬤</span>
+                                <span class="valve-label">V2</span>
+                            </button>
+                            <div class="pipe vertical short"></div>
+                        </div>
+                    </div>
+
+                    <!-- Pipes to Mixer -->
+                    <div class="pipes-junction">
+                        <div class="pipe horizontal" id="pipeA"></div>
+                        <div class="pipe horizontal" id="pipeB"></div>
+                        <div class="pipe vertical long" id="pipeMain"></div>
+                    </div>
+
+                    <!-- Tank C - Mixer -->
+                    <div class="mixer-section">
+                        <div class="tank mixer" id="tankC">
+                            <div class="tank-label">MIXER</div>
+                            <div class="tank-body large">
+                                <div class="liquid mixed" id="liquidC"></div>
+                                <div class="agitator" id="agitator">
+                                    <div class="blade"></div>
+                                    <div class="blade"></div>
+                                </div>
+                                <div class="level-text" id="levelC">0%</div>
+                            </div>
+                            <div class="tank-info">PRODUCT OUTPUT</div>
+                        </div>
+                        <button class="agitator-btn" id="agitatorBtn" onclick="toggleAgitator()">
+                            <span id="agitatorIcon">▶</span>
+                            <span>AGITATOR</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Control Panel -->
+            <section class="control-panel">
+                <h2>Control Panel</h2>
+                <div class="controls">
+                    <div class="control-group">
+                        <h3>Valves</h3>
+                        <div class="control-item">
+                            <span>Valve V1 (Pigment)</span>
+                            <span class="status closed" id="statusV1">CLOSED</span>
+                        </div>
+                        <div class="control-item">
+                            <span>Valve V2 (Base)</span>
+                            <span class="status closed" id="statusV2">CLOSED</span>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <h3>Equipment</h3>
+                        <div class="control-item">
+                            <span>Agitator Motor</span>
+                            <span class="status closed" id="statusAgitator">OFF</span>
+                        </div>
+                        <div class="control-item">
+                            <span>Temperature</span>
+                            <span class="value" id="temperature">22.5°C</span>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <h3>Quick Actions</h3>
+                        <button class="action-btn start" onclick="startProcess()">▶ START BATCH</button>
+                        <button class="action-btn stop" onclick="stopProcess()">⬛ EMERGENCY STOP</button>
+                        <button class="action-btn reset" onclick="resetProcess()">↻ RESET</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Charts -->
+            <section class="charts-panel">
+                <h2>Live Analytics</h2>
+                <div class="charts-container">
+                    <div class="chart-box">
+                        <h3>Tank Levels</h3>
+                        <canvas id="levelsChart"></canvas>
+                    </div>
+                    <div class="chart-box">
+                        <h3>Temperature & Flow Rate</h3>
+                        <canvas id="tempChart"></canvas>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Alarms Bar -->
+        <footer class="alarms-bar">
+            <div class="alarm-status" id="alarmStatus">
+                <span class="alarm-icon">✓</span>
+                <span>No Active Alarms</span>
+            </div>
+            <div class="alarm-list" id="alarmList"></div>
+        </footer>
+    </div>
+
+    <script src="simulation.js"></script>
+</body>
+</html>
