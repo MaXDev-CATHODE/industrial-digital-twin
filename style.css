@@ -621,11 +621,7 @@ section h2 {
     100% { stroke-dashoffset: 0; }
 }
 
-@keyframes diffusion {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-}
+
 
 .alarm-icon {
     font-size: 1rem;
