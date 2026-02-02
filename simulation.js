@@ -9,16 +9,17 @@
 
 const state = {
     tanks: {
-        A: { level: 100, maxLevel: 100, type: 'pigment' },
-        B: { level: 100, maxLevel: 100, type: 'base' },
-        C: { level: 0, maxLevel: 100, type: 'mixed' }
+        A: { level: 100, maxLevel: 100, type: 'pigment', color: { r: 220, g: 38, b: 38 } }, // Red-600
+        B: { level: 100, maxLevel: 100, type: 'base', color: { r: 229, g: 231, b: 235 } },    // Gray-200
+        C: { level: 0, maxLevel: 100, type: 'mixed', pigmentVol: 0, baseVol: 0 }
     },
     valves: {
         A: { open: false },
         B: { open: false }
     },
     agitator: {
-        running: false
+        running: false,
+        mixingProgress: 0 // 0-100% homogeneity
     },
     process: {
         running: false,
@@ -33,6 +34,7 @@ const state = {
 const FLOW_RATE = 0.5;          // Units per tick
 const TEMP_VARIATION = 0.3;     // Temperature fluctuation
 const TICK_INTERVAL = 100;      // ms
+const MIXING_SPEED = 2.0;       // % per tick homogeneity gain
 
 // Chart data history
 const chartHistory = {
@@ -331,6 +333,9 @@ function simulationTick() {
         const flow = Math.min(FLOW_RATE, state.tanks.A.level);
         state.tanks.A.level -= flow;
         state.tanks.C.level += flow;
+        state.tanks.C.pigmentVol += flow;
+        // Turbulence reduces homogeneity
+        state.agitator.mixingProgress = Math.max(0, state.agitator.mixingProgress - 5);
         flowOccurred = true;
     }
 
@@ -339,18 +344,25 @@ function simulationTick() {
         const flow = Math.min(FLOW_RATE, state.tanks.B.level);
         state.tanks.B.level -= flow;
         state.tanks.C.level += flow;
+        state.tanks.C.baseVol += flow;
+        state.agitator.mixingProgress = Math.max(0, state.agitator.mixingProgress - 5);
         flowOccurred = true;
     }
 
     // Cap mixer level
     state.tanks.C.level = Math.min(state.tanks.C.level, state.tanks.C.maxLevel);
 
+    // Simulation of Mixing Process (Diffusion)
+    if (state.agitator.running && state.tanks.C.level > 0) {
+        state.agitator.mixingProgress = Math.min(100, state.agitator.mixingProgress + MIXING_SPEED);
+    }
+
     // Update flow rate display
     state.process.flowRate = flowOccurred ? FLOW_RATE * 10 : 0;
 
     // Temperature simulation
     if (state.agitator.running) {
-        state.process.temperature += (Math.random() - 0.4) * TEMP_VARIATION;
+        state.process.temperature += (Math.random() - 0.3) * TEMP_VARIATION; // Friction heats up
     } else {
         // Slowly cool down
         state.process.temperature += (22.5 - state.process.temperature) * 0.01;
@@ -362,6 +374,7 @@ function simulationTick() {
 
     // Update visuals
     updateTankVisuals();
+    updateMixerVisuals(); // New function for color mixing
     updatePipeVisuals(flowOccurred);
     updateTemperatureDisplay();
     updateCharts();
@@ -415,6 +428,59 @@ function updateTankVisuals() {
     // Tank C (Mixer)
     elements.liquidC.style.height = `${state.tanks.C.level}%`;
     elements.levelC.textContent = `${Math.round(state.tanks.C.level)}%`;
+}
+
+function updateMixerVisuals() {
+    // If empty or no components
+    if (state.tanks.C.level <= 0) {
+        elements.liquidC.style.background = 'transparent';
+        return;
+    }
+
+    const totalVol = state.tanks.C.pigmentVol + state.tanks.C.baseVol;
+    if (totalVol === 0) return;
+
+    // Calculate ratio (0.0 = 100% Base, 1.0 = 100% Pigment)
+    const pigmentRatio = state.tanks.C.pigmentVol / totalVol;
+
+    // Calculate Target Mixed Color
+    const r = Math.round(state.tanks.B.color.r + (state.tanks.A.color.r - state.tanks.B.color.r) * pigmentRatio);
+    const g = Math.round(state.tanks.B.color.g + (state.tanks.A.color.g - state.tanks.B.color.g) * pigmentRatio);
+    const b = Math.round(state.tanks.B.color.b + (state.tanks.A.color.b - state.tanks.B.color.b) * pigmentRatio);
+
+    const targetColor = `rgb(${r},${g},${b})`;
+
+    // Diffusion Visualization
+    // If fully mixed (homogeneity 100%), show solid color.
+    // If not, show gradient.
+
+    const homogeneity = state.agitator.mixingProgress / 100;
+
+    if (homogeneity >= 0.95) {
+        // Fully mixed
+        elements.liquidC.style.background = targetColor;
+        elements.liquidC.style.boxShadow = `0 0 20px rgba(${r},${g},${b}, 0.5)`;
+    } else {
+        // Heterogeneous (Diffusion pattern)
+        // We simulate unmixed streaks using linear-gradient
+        const streakIntensity = Math.floor((1 - homogeneity) * 100);
+
+        elements.liquidC.style.background = `
+            linear-gradient(
+                ${state.agitator.running ? '45deg' : '180deg'}, 
+                rgb(${state.tanks.A.color.r},${state.tanks.A.color.g},${state.tanks.A.color.b}) 0%, 
+                rgb(${state.tanks.B.color.r},${state.tanks.B.color.g},${state.tanks.B.color.b}) ${50 - streakIntensity / 3}%,
+                ${targetColor} ${50 + streakIntensity / 3}%, 
+                ${targetColor} 100%
+            )
+        `;
+        elements.liquidC.style.backgroundSize = state.agitator.running ? '400% 400%' : '100% 100%';
+        if (state.agitator.running) {
+            elements.liquidC.style.animation = 'diffusion 3s ease infinite';
+        } else {
+            elements.liquidC.style.animation = 'none';
+        }
+    }
 }
 
 function updatePipeVisuals(flowing) {
