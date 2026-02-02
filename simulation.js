@@ -430,18 +430,46 @@ function updateTankVisuals() {
     elements.levelC.textContent = `${Math.round(state.tanks.C.level)}%`;
 }
 
+// Optimization: Track last state to avoid unnecessary DOM updates
+let lastMixerState = {
+    homogeneity: -1,
+    pigmentRatio: -1,
+    running: false,
+    level: -1
+};
+
 function updateMixerVisuals() {
     // If empty or no components
     if (state.tanks.C.level <= 0) {
-        elements.liquidC.style.background = 'transparent';
+        if (lastMixerState.level !== 0) {
+            elements.liquidC.style.background = 'transparent';
+            elements.liquidC.style.animation = 'none';
+            lastMixerState.level = 0;
+        }
         return;
     }
+    lastMixerState.level = state.tanks.C.level;
 
     const totalVol = state.tanks.C.pigmentVol + state.tanks.C.baseVol;
     if (totalVol === 0) return;
 
     // Calculate ratio (0.0 = 100% Base, 1.0 = 100% Pigment)
     const pigmentRatio = state.tanks.C.pigmentVol / totalVol;
+    const homogeneity = state.agitator.mixingProgress / 100;
+    const isRunning = state.agitator.running;
+
+    // Throttle updates: only update if changes are significant (e.g., >1% change)
+    // or if running state changed (to toggle animation immediately)
+    if (Math.abs(pigmentRatio - lastMixerState.pigmentRatio) < 0.01 &&
+        Math.abs(homogeneity - lastMixerState.homogeneity) < 0.01 &&
+        isRunning === lastMixerState.running) {
+        return;
+    }
+
+    // Update state cache
+    lastMixerState.pigmentRatio = pigmentRatio;
+    lastMixerState.homogeneity = homogeneity;
+    lastMixerState.running = isRunning;
 
     // Calculate Target Mixed Color
     const r = Math.round(state.tanks.B.color.r + (state.tanks.A.color.r - state.tanks.B.color.r) * pigmentRatio);
@@ -450,33 +478,31 @@ function updateMixerVisuals() {
 
     const targetColor = `rgb(${r},${g},${b})`;
 
-    // Diffusion Visualization
-    // If fully mixed (homogeneity 100%), show solid color.
-    // If not, show gradient.
-
-    const homogeneity = state.agitator.mixingProgress / 100;
-
     if (homogeneity >= 0.95) {
         // Fully mixed
         elements.liquidC.style.background = targetColor;
         elements.liquidC.style.boxShadow = `0 0 20px rgba(${r},${g},${b}, 0.5)`;
+        elements.liquidC.style.animation = 'none';
     } else {
         // Heterogeneous (Diffusion pattern)
-        // We simulate unmixed streaks using linear-gradient
         const streakIntensity = Math.floor((1 - homogeneity) * 100);
 
         elements.liquidC.style.background = `
             linear-gradient(
-                ${state.agitator.running ? '45deg' : '180deg'}, 
+                ${isRunning ? '45deg' : '180deg'}, 
                 rgb(${state.tanks.A.color.r},${state.tanks.A.color.g},${state.tanks.A.color.b}) 0%, 
                 rgb(${state.tanks.B.color.r},${state.tanks.B.color.g},${state.tanks.B.color.b}) ${50 - streakIntensity / 3}%,
                 ${targetColor} ${50 + streakIntensity / 3}%, 
                 ${targetColor} 100%
             )
         `;
-        elements.liquidC.style.backgroundSize = state.agitator.running ? '400% 400%' : '100% 100%';
-        if (state.agitator.running) {
-            elements.liquidC.style.animation = 'diffusion 3s ease infinite';
+        elements.liquidC.style.backgroundSize = isRunning ? '400% 400%' : '100% 100%';
+
+        // Only verify animation property if state changed
+        if (isRunning) {
+            if (elements.liquidC.style.animationName !== 'diffusion') {
+                elements.liquidC.style.animation = 'diffusion 3s ease infinite';
+            }
         } else {
             elements.liquidC.style.animation = 'none';
         }
