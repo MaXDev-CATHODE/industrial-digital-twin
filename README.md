@@ -1,6 +1,6 @@
 # 🏭 Industrial Digital Twin - Paint Mixing Station
 
-**Live Demo:** [View on GitHub Pages](https://YOUR-USERNAME.github.io/industrial-digital-twin/)
+**Live Demo:** [View on GitHub Pages](https://maxdev-cathode.github.io/industrial-digital-twin/)
 
 ![SCADA Dashboard Preview](preview.png)
 
@@ -83,4 +83,4 @@ MIT License - Free for personal and commercial use.
 
 ---
 
-**Built with ❤️ by [Your Name]** | [Portfolio](https://www.freelancer.com/u/maksks00)
+**Built with ❤️ by MaXDev** | [GitHub](https://github.com/MaXDev-CATHODE)
